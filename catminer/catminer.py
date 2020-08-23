@@ -7,7 +7,6 @@ import time
 import zipfile
 
 FILE_RE = re.compile(r'(?<=\.CAT)[^.]*?$')
-browser = pyvba.Browser('CATIA.Application')
 
 logger = logging.getLogger(__name__)
 logging.basicConfig(
@@ -37,8 +36,11 @@ def timer(func):
     return wrapper
 
 
-class Miner:
-    def __init__(self, path: str = None, out_dir: str = None): ...
+class CATMiner:
+    def __init__(self, path: str = None, out_dir: str = None):
+        self.browser = pyvba.Browser('CATIA.Application')
+        self._path = path if path is not None else r"..\input"
+        self._out_dir = out_dir if out_dir is not None else r"..\output"
 
     def begin(self) -> None:
         """Commence the data-mining process once setting are in place, if applicable."""
@@ -84,8 +86,7 @@ class Miner:
         """
         ...
 
-    @staticmethod
-    def cat_type(cat_file_name: str) -> pyvba.Browser:
+    def _cat_type(self, cat_file_name: str) -> pyvba.Browser:
         """Return the browser object that correlates to the CATIA file being processed.
 
         Parameters
@@ -98,7 +99,18 @@ class Miner:
         pyvba.Browser
             The VBA object that represents the correlated file type.
         """
-        ...
+        file_type = FILE_RE.findall(cat_file_name)[0]
+
+        if file_type == "Product":
+            return self.browser.ActiveDocument.Product
+        elif file_type == "Part":
+            return self.browser.ActiveDocument.Part
+        elif file_type == "Drawing":
+            return self.browser.ActiveDocument.DrawingRoot
+        elif file_type == "Process":
+            return self.browser.ActiveDocument.PPRDocument
+
+        return self.browser
 
     def _export_file(self, path: str) -> None:
         """Exports a CATIA file to a specified location using pyvba.
