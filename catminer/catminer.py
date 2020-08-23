@@ -7,17 +7,20 @@ import time
 import zipfile
 
 FILE_RE = re.compile(r'(?<=\.CAT)[^.]*?$')
+DIR_PATH = os.path.dirname(__file__)
 
-logger = logging.getLogger(__name__)
+logger = logging.getLogger('catminer')
 logging.basicConfig(
     datefmt='%Y-%m-%d %H:%M:%S',
-    format='%(asctime)s %(levelname)-8s %(message)s',
-    filename=r'..\output\catminer.log',
-    filemode='w', level=logging.NOTSET
+    format='%(asctime)s - %(levelname)s - %(message)s',
+    level=logging.NOTSET,
+    filename=os.path.join(DIR_PATH, r'..\tests\out\catminer.log'),
+    filemode='w'
 )
 
 
 def timer(func):
+    """Wrapper function to time the function execution time."""
     def wrapper(*args, **kwargs):
         start_time = time.perf_counter()
 
@@ -36,11 +39,34 @@ def timer(func):
     return wrapper
 
 
+def get_path(rel_path: str) -> str:
+    """Returns the complete path given a relative one.
+
+    Parameters
+    ----------
+    rel_path: str
+        The relative path of the file.
+
+    Returns
+    -------
+    str
+        The complete path of the file.
+    """
+    return os.path.join(DIR_PATH, rel_path)
+
+
 class CATMiner:
     def __init__(self, path: str = None, out_dir: str = None):
         self.browser = pyvba.Browser('CATIA.Application')
-        self._path = path if path is not None else r"..\input"
-        self._out_dir = out_dir if out_dir is not None else r"..\output"
+        self._path = path if path is not None else os.path.join(DIR_PATH, r"..\input")
+        self._out_dir = out_dir if out_dir is not None else os.path.join(DIR_PATH, r"..\output")
+
+        logger.removeHandler('catminer')
+        logger.addHandler(
+            logging.FileHandler(
+                os.path.join(out_dir + r'\catminer.log'), 'w'
+            )
+        )
 
     def begin(self) -> None:
         """Commence the data-mining process once setting are in place, if applicable."""
