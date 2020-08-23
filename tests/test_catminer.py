@@ -12,7 +12,7 @@ class TestExternalFunctions(unittest.TestCase):
         cls.path = os.path.dirname(__file__)
 
     def test_timer(self):
-        @catminer.timer(file_name="foo")
+        @catminer.timer(task="wasting time")
         def waste_time():
             for i in range(10000):
                 continue

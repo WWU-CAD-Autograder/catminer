@@ -3,16 +3,17 @@ import logging
 import os
 import pyvba
 import re
+import sys
 import time
+import traceback
 import zipfile as zf
-
 from enum import IntEnum
 
 TYPE_RE = re.compile(r'(?<=\.CAT)[^.]*?$')
 FILE_RE = re.compile(r'[^\\]+?(?=\.CAT)')
 DIR_PATH = os.path.dirname(__file__)
 
-logger = logging.getLogger('catminer')
+logger = logging.getLogger(__name__)
 logging.basicConfig(
     datefmt='%Y-%m-%d %H:%M:%S',
     format='%(asctime)s - %(levelname)s - %(message)s',
@@ -22,20 +23,20 @@ logging.basicConfig(
 )
 
 
-def timer(file_name: str):
+def timer(task: str):
     """Wrapper function to time the function execution time."""
     def decorator(func):
         def wrapper(*args, **kwargs):
             start_time = time.perf_counter()
 
-            text = f"Started export for {file_name}."
+            text = f"Started {task}."
             print(text)
             logger.info(text)
 
             output = func(*args, **kwargs)
             end_time = time.perf_counter()
 
-            text = f"Finished export for {file_name} in {(end_time - start_time):.4f} seconds."
+            text = f"Finished {task} in {(end_time - start_time):.4f} seconds."
             print(text)
             logger.info(text)
 
@@ -89,17 +90,32 @@ class CATMiner:
         self._file_type = file_type.value
         self._start_time = time.perf_counter()
 
-        # change logger save location
-        logger.removeHandler('catminer')
-        logger.addHandler(
-            logging.FileHandler(
-                os.path.join(self._out_dir, r'catminer.log'), 'w'
-            )
-        )
+        # change logger properties
+        global logger
+
+        fh = logging.FileHandler(os.path.join(self._out_dir, r'catminer.log'), 'w')
+        fh.setLevel(logging.INFO)
+
+        formatter = logging.Formatter('%(asctime)s - %(levelname)s - %(message)s', datefmt='%Y-%m-%d %H:%M:%S')
+        fh.setFormatter(formatter)
+
+        logger.addHandler(fh)
+        logger.setLevel(logging.INFO)
 
     def begin(self) -> None:
         """Commence the data-mining process once setting are in place, if applicable."""
-        self._dir_crawl(self._path, self._out_dir)
+        _update_log('---------------BEGIN EXPORT---------------')
+
+        try:
+            self._dir_crawl(self._path, self._out_dir)
+        except BaseException:
+            exc_type, exc_value, exc_traceback = sys.exc_info()
+            [
+                logger.critical(re.sub(r'(\n| {2,})', '', str(i)))
+                for i in traceback.format_exception(exc_type, exc_value, exc_traceback)
+            ]
+            time.sleep(0.1)
+            traceback.print_exception(exc_type, exc_value, exc_traceback)
 
     def _dir_crawl(self, path: str, out_dir: str) -> None:
         """Crawl through, process, and duplicate the directory.
@@ -108,18 +124,23 @@ class CATMiner:
         process will be launched. If a zip file is encountered, it will be opened and the crawl will proceed. If a
         folder is encountered, it will be duplicated in the respective output folder.
         """
-        for f in os.listdir(path):
-            if os.path.isdir(f):
-                dir_path = os.path.join(out_dir, f)
+        for file in os.listdir(path):
+            file_path = os.path.join(path, file)
+
+            if os.path.isdir(file_path):
+                dir_path = os.path.join(out_dir, file)
 
                 if not os.path.exists(dir_path):
                     _update_log(f'Created path: {dir_path}.')
                     os.mkdir(dir_path)
-            elif os.path.isfile(f):
-                if zf.is_zipfile(f):
-                    with zf.ZipFile(f) as zfile:
-                        new_out_dir = os.path.join(out_dir, zfile.filename)
-                        new_path = os.path.join(path, zfile.filename)
+
+                self._dir_crawl(file_path, dir_path)
+            elif os.path.isfile(file_path):
+                if zf.is_zipfile(file_path):
+                    with zf.ZipFile(file_path) as zfile:
+                        file_name = re.findall(r'(?<=\\)[^\\]+?(?=\.zip)', zfile.filename)[0]
+                        new_out_dir = os.path.join(out_dir, file_name)
+                        new_path = os.path.join(path, file_name)
 
                         if not os.path.exists(new_out_dir):
                             _update_log(f'Created path: {new_out_dir}.')
@@ -130,34 +151,46 @@ class CATMiner:
 
                         zfile.extractall(new_path)
                         self._dir_crawl(new_path, new_out_dir)
-                if TYPE_RE.match(f):
-                    self._export_file(os.path.join(path, f), out_dir)
+                if TYPE_RE.search(file_path):
+                    self._export_file(os.path.join(path, file), out_dir)
 
-    def _cat_type(self, cat_file_type: str) -> pyvba.Browser:
+    def _cat_type(self, cat_file: str) -> pyvba.Browser:
         """Return the browser object that correlates to the CATIA file being processed.
 
         Parameters
         ----------
-        cat_file_type: str
+        cat_file: str
             The CATIA.ActiveDocument.Name (i.e. the name of the file).
 
         Returns
         -------
         pyvba.Browser
             The VBA object that represents the correlated file type.
+
+        Notes
+        -----
+        If the file doesn't open, wait for it to.
         """
-        file_type = TYPE_RE.findall(cat_file_type)[0]
+        browser = pyvba.Browser("CATIA.Application")
 
-        if file_type == "Product":
-            return self.browser.ActiveDocument.Product
-        elif file_type == "Part":
-            return self.browser.ActiveDocument.Part
-        elif file_type == "Drawing":
-            return self.browser.ActiveDocument.DrawingRoot
-        elif file_type == "Process":
-            return self.browser.ActiveDocument.PPRDocument
+        try:
+            file_type = TYPE_RE.findall(cat_file)[0]
 
-        return self.browser.ActiveDocument
+            if file_type == "Product":
+                browser = browser.ActiveDocument.Product
+            elif file_type == "Part":
+                browser = browser.ActiveDocument.Part
+            elif file_type == "Drawing":
+                browser = browser.ActiveDocument.DrawingRoot
+            elif file_type == "Process":
+                browser = browser.ActiveDocument.PPRDocument
+            else:
+                browser = browser.ActiveDocument
+        except AttributeError:
+            time.sleep(1)
+            self._cat_type(cat_file)
+
+        return browser
 
     def _export_file(self, path: str, out_dir: str) -> None:
         """Exports a CATIA file to a specified location using pyvba.
@@ -173,16 +206,21 @@ class CATMiner:
         -----
         The document is opened in CATIA then closed when finished. Errors are logged.
         """
-        browser = self._cat_type(path)
         file_name = FILE_RE.findall(path)[0]
         file_type = TYPE_RE.findall(path)[0]
+
+        _update_log(f"Opening \"{file_name + '.CAT' + file_type}\".")
+        opened_file = self.browser.Documents.Open(path)
+        browser = self._cat_type(path)
 
         if self._file_type == 1:
             exporter = pyvba.JSONExport(browser, skip_func=True, skip_err=True)
         else:
             exporter = pyvba.XMLExport(browser, skip_func=True, skip_err=True)
 
-        timer(file_name + '.CAT' + file_type)(exporter.save)(file_name, out_dir)
+        timer(f"export for \"{file_name + '.CAT' + file_type}\"")(exporter.save)(file_name, out_dir)
+        opened_file.Close()
+        time.sleep(1)
 
     def _finish(self) -> None:
         """Cleans up any open files."""
