@@ -2,7 +2,6 @@ import os
 import re
 import time
 import unittest
-import logging
 
 import catminer
 
@@ -13,7 +12,7 @@ class TestExternalFunctions(unittest.TestCase):
         cls.path = os.path.dirname(__file__)
 
     def test_timer(self):
-        @catminer.timer
+        @catminer.timer(file_name="foo")
         def waste_time():
             for i in range(10000):
                 continue

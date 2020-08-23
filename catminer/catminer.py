@@ -8,7 +8,8 @@ import zipfile as zf
 
 from enum import IntEnum
 
-FILE_RE = re.compile(r'(?<=\.CAT)[^.]*?$')
+TYPE_RE = re.compile(r'(?<=\.CAT)[^.]*?$')
+FILE_RE = re.compile(r'[^\\]+?(?=\.CAT)')
 DIR_PATH = os.path.dirname(__file__)
 
 logger = logging.getLogger('catminer')
@@ -21,24 +22,26 @@ logging.basicConfig(
 )
 
 
-def timer(func):
+def timer(file_name: str):
     """Wrapper function to time the function execution time."""
-    def wrapper(*args, **kwargs):
-        start_time = time.perf_counter()
+    def decorator(func):
+        def wrapper(*args, **kwargs):
+            start_time = time.perf_counter()
 
-        text = f"Started {func.__name__!r}."
-        print(text)
-        logger.info(text)
+            text = f"Started export for {file_name}."
+            print(text)
+            logger.info(text)
 
-        output = func(*args, **kwargs)
-        end_time = time.perf_counter()
+            output = func(*args, **kwargs)
+            end_time = time.perf_counter()
 
-        text = f"Finished {func.__name__!r} in {(end_time - start_time):.4f} seconds."
-        print(text)
-        logger.info(text)
+            text = f"Finished export for {file_name} in {(end_time - start_time):.4f} seconds."
+            print(text)
+            logger.info(text)
 
-        return output
-    return wrapper
+            return output
+        return wrapper
+    return decorator
 
 
 def get_path(rel_path: str) -> str:
@@ -57,7 +60,7 @@ def get_path(rel_path: str) -> str:
     return os.path.join(DIR_PATH, rel_path)
 
 
-def _update_log(text: str, level: int = logging.NOTSET) -> None:
+def _update_log(text: str, level: int = logging.INFO) -> None:
     """Add an entry to the log and print out step."""
     logger.log(level, text)
     print(text)
@@ -84,6 +87,7 @@ class CATMiner:
         self._path = path if path is not None else os.path.join(DIR_PATH, r"..\input")
         self._out_dir = out_dir if out_dir is not None else os.path.join(DIR_PATH, r"..\output")
         self._file_type = file_type.value
+        self._start_time = time.perf_counter()
 
         # change logger save location
         logger.removeHandler('catminer')
@@ -109,7 +113,8 @@ class CATMiner:
                 dir_path = os.path.join(out_dir, f)
 
                 if not os.path.exists(dir_path):
-                    os.mkdir(os.path.join(out_dir, f))
+                    _update_log(f'Created path: {dir_path}.')
+                    os.mkdir(dir_path)
             elif os.path.isfile(f):
                 if zf.is_zipfile(f):
                     with zf.ZipFile(f) as zfile:
@@ -117,13 +122,15 @@ class CATMiner:
                         new_path = os.path.join(path, zfile.filename)
 
                         if not os.path.exists(new_out_dir):
+                            _update_log(f'Created path: {new_out_dir}.')
                             os.mkdir(new_out_dir)
                         if not os.path.exists(new_path):
+                            _update_log(f'Created path: {new_path}.')
                             os.mkdir(new_path)
 
                         zfile.extractall(new_path)
                         self._dir_crawl(new_path, new_out_dir)
-                if FILE_RE.match(f):
+                if TYPE_RE.match(f):
                     self._export_file(os.path.join(path, f), out_dir)
 
     def _cat_type(self, cat_file_type: str) -> pyvba.Browser:
@@ -139,7 +146,7 @@ class CATMiner:
         pyvba.Browser
             The VBA object that represents the correlated file type.
         """
-        file_type = FILE_RE.findall(cat_file_type)[0]
+        file_type = TYPE_RE.findall(cat_file_type)[0]
 
         if file_type == "Product":
             return self.browser.ActiveDocument.Product
@@ -167,18 +174,21 @@ class CATMiner:
         The document is opened in CATIA then closed when finished. Errors are logged.
         """
         browser = self._cat_type(path)
-        file_name = re.findall(r'[^\\]+?(?=\.CAT)', path)[0]
+        file_name = FILE_RE.findall(path)[0]
+        file_type = TYPE_RE.findall(path)[0]
 
         if self._file_type == 1:
             exporter = pyvba.JSONExport(browser, skip_func=True, skip_err=True)
         else:
             exporter = pyvba.XMLExport(browser, skip_func=True, skip_err=True)
 
-        exporter.save(file_name, out_dir)
+        timer(file_name + '.CAT' + file_type)(exporter.save)(file_name, out_dir)
 
     def _finish(self) -> None:
         """Cleans up any open files."""
         self.browser = None
+        total_time = self._start_time - time.perf_counter()
+        _update_log(f"Finished batch export in {total_time:.4f}.")
 
 
 if __name__ == "__main__":
