@@ -1,1 +1,1 @@
-from catminer.catminer import *
+from catminer.catminer import CATMiner, timer, get_path

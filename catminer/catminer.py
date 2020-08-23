@@ -56,15 +56,16 @@ def get_path(rel_path: str) -> str:
 
 
 class CATMiner:
-    def __init__(self, path: str = None, out_dir: str = None):
-        self.browser = pyvba.Browser('CATIA.Application')
+    def __init__(self, path: str = None, out_dir: str = None, *args, **kwargs):
+        app = kwargs.get('app', 'CATIA.Application')
+        self.browser = pyvba.Browser(app)
         self._path = path if path is not None else os.path.join(DIR_PATH, r"..\input")
         self._out_dir = out_dir if out_dir is not None else os.path.join(DIR_PATH, r"..\output")
 
         logger.removeHandler('catminer')
         logger.addHandler(
             logging.FileHandler(
-                os.path.join(out_dir + r'\catminer.log'), 'w'
+                os.path.join(self._out_dir, r'catminer.log'), 'w'
             )
         )
 
