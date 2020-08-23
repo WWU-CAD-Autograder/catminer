@@ -127,6 +127,7 @@ class CATMiner:
         for file in os.listdir(path):
             file_path = os.path.join(path, file)
 
+            # directory found -> scan it
             if os.path.isdir(file_path):
                 dir_path = os.path.join(out_dir, file)
 
@@ -135,7 +136,10 @@ class CATMiner:
                     os.mkdir(dir_path)
 
                 self._dir_crawl(file_path, dir_path)
+
+            # file found
             elif os.path.isfile(file_path):
+                # zipfile found -> unzip it and scan it
                 if zf.is_zipfile(file_path):
                     with zf.ZipFile(file_path) as zfile:
                         file_name = re.findall(r'(?<=\\)[^\\]+?(?=\.zip)', zfile.filename)[0]
@@ -151,7 +155,9 @@ class CATMiner:
 
                         zfile.extractall(new_path)
                         self._dir_crawl(new_path, new_out_dir)
-                if TYPE_RE.search(file_path):
+
+                # CATIA file found
+                elif TYPE_RE.search(file_path):
                     self._export_file(os.path.join(path, file), out_dir)
 
     def _cat_type(self, cat_file: str) -> pyvba.Browser:
@@ -173,9 +179,11 @@ class CATMiner:
         """
         browser = pyvba.Browser("CATIA.Application")
 
+        # ensure that the file is open
         try:
             file_type = TYPE_RE.findall(cat_file)[0]
 
+            # get the right CATIA object
             if file_type == "Product":
                 browser = browser.ActiveDocument.Product
             elif file_type == "Part":
@@ -187,6 +195,7 @@ class CATMiner:
             else:
                 browser = browser.ActiveDocument
         except AttributeError:
+            # wait and try again
             time.sleep(1)
             self._cat_type(cat_file)
 
@@ -209,16 +218,21 @@ class CATMiner:
         file_name = FILE_RE.findall(path)[0]
         file_type = TYPE_RE.findall(path)[0]
 
+        # open the file
         _update_log(f"Opening \"{file_name + '.CAT' + file_type}\".")
         opened_file = self.browser.Documents.Open(path)
         browser = self._cat_type(path)
 
+        # select the right exporter
         if self._file_type == 1:
             exporter = pyvba.JSONExport(browser, skip_func=True, skip_err=True)
         else:
             exporter = pyvba.XMLExport(browser, skip_func=True, skip_err=True)
 
+        # export the file and start a timer
         timer(f"export for \"{file_name + '.CAT' + file_type}\"")(exporter.save)(file_name, out_dir)
+
+        # ensure that the file closes
         opened_file.Close()
         time.sleep(1)
 
@@ -230,4 +244,5 @@ class CATMiner:
 
 
 if __name__ == "__main__":
+    # TODO sysargs, skip duplicates (zip/folder), and minimize timing
     ...
