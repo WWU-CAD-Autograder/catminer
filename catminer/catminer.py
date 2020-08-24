@@ -1,4 +1,3 @@
-import argparse
 import logging
 import os
 import pyvba
@@ -85,8 +84,8 @@ class CATMiner:
             The output path.
         """
         self.browser = pyvba.Browser(kwargs.get('app', 'CATIA.Application'))
-        self._path = path if path is not None else os.path.join(DIR_PATH, r"..\input")
-        self._out_dir = out_dir if out_dir is not None else os.path.join(DIR_PATH, r"..\output")
+        self._path = os.path.abspath(path) if path is not None else os.path.join(DIR_PATH, r"..\input")
+        self._out_dir = os.path.abspath(out_dir) if out_dir is not None else os.path.join(DIR_PATH, r"..\output")
         self._file_type = file_type.value
         self._start_time = time.perf_counter()
 
@@ -244,5 +243,4 @@ class CATMiner:
 
 
 if __name__ == "__main__":
-    # TODO sysargs, skip duplicates (zip/folder), and minimize timing
-    ...
+    CATMiner(r"..\input", r"..\output").begin()
