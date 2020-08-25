@@ -16,7 +16,7 @@ To export data, navigate to the file or directory:
 ```cmd
 cd <file or directory>
 ```
-Then, run catminer:
+Open CATIA then run catminer:
 ```cmd
 catminer run
 ```
@@ -48,7 +48,7 @@ optional arguments:
   -r, --relative-path   use the relative path to run catminer
 ```
 
-The current supported output are dependent on [pyvba](https://pypi.org/project/pyvba/).
+The supported outputs are dependent on [pyvba](https://pypi.org/project/pyvba/).
 
 ## Developer Notes
 Contributors are welcome! The project is [hosted on GitHub](https://github.com/WWU-CAD-Autograder/catminer). Report 
