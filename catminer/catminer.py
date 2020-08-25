@@ -24,6 +24,7 @@ logger = logging.getLogger()
 
 def timer(task: str):
     """Wrapper function to time the function execution time."""
+
     def decorator(func):
         def wrapper(*args, **kwargs):
             start_time = time.perf_counter()
@@ -38,7 +39,9 @@ def timer(task: str):
             logger.info(text)
 
             return output
+
         return wrapper
+
     return decorator
 
 
@@ -139,6 +142,18 @@ class CATMiner:
 
                 # CATIA file found
                 elif type_re.search(file_path):
+                    # check if file has been previously processed
+                    if os.path.exists(out_dir):
+                        file_name = file_re.findall(file_path)[0]
+                        file_type = type_re.findall(file_path)[0]
+                        extension_dict = {str(XML): '.xml', str(JSON): '.json'}
+                        extension = extension_dict[str(self._file_type)]
+                        file_loc = os.path.join(out_dir, file_name + extension)
+
+                        if os.path.exists(file_loc):
+                            logger.warning(f'Skipping "{file_name + ".CAT" + file_type}". File already exported!')
+                            continue
+
                     self._export_file(os.path.join(path, file), out_dir)
 
     def _cat_type(self, cat_file: str) -> pyvba.Browser:
@@ -220,7 +235,10 @@ class CATMiner:
     def _finish(self) -> None:
         """Cleans up any open files."""
         self.browser = None
-        shutil.rmtree(self._tmp_dir)
+        try:
+            shutil.rmtree(self._tmp_dir)
+        except FileNotFoundError:
+            logger.error('Directory ".catminer" not found! Skipping removal...')
 
         # check total time
         total_time = time.perf_counter() - self._start_time
