@@ -6,7 +6,6 @@ import sys
 import time
 import traceback
 import zipfile as zf
-from enum import IntEnum
 
 TYPE_RE = re.compile(r'(?<=\.CAT)[^.]*?$')
 FILE_RE = re.compile(r'[^\\]+?(?=\.CAT)')
@@ -66,14 +65,8 @@ def _update_log(text: str, level: int = logging.INFO) -> None:
     print(text)
 
 
-class FileType(IntEnum):
-    """Enumerator that holds the files types."""
-    XML = 0
-    JSON = 1
-
-
 class CATMiner:
-    def __init__(self, path: str = None, out_dir: str = None, file_type: IntEnum = FileType.XML, **kwargs):
+    def __init__(self, path: str = None, out_dir: str = None, file_type: int = 0, **kwargs):
         """The CATMiner class is used to extract data in a batch process.
 
         Parameters
@@ -82,11 +75,13 @@ class CATMiner:
             The input path.
         out_dir: str
             The output path.
+        file_type: int
+            The file types represented as an integer (e.g. catminer.XML, catminer.JSON)
         """
         self.browser = pyvba.Browser(kwargs.get('app', 'CATIA.Application'))
         self._path = os.path.abspath(path) if path is not None else os.path.join(DIR_PATH, r"..\input")
         self._out_dir = os.path.abspath(out_dir) if out_dir is not None else os.path.join(DIR_PATH, r"..\output")
-        self._file_type = file_type.value
+        self._file_type = file_type
         self._start_time = time.perf_counter()
 
         # change logger properties

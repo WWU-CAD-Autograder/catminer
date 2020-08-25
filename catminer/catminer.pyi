@@ -1,6 +1,5 @@
-import pyvba
 import logging
-from enum import IntEnum
+import pyvba
 
 def timer(task: str):
     def decorator(func):
@@ -9,10 +8,8 @@ def timer(task: str):
 def get_path(rel_path: str) -> str: ...
 def _update_log(text: str, level: int = logging.INFO) -> None: ...
 
-class FileType(IntEnum): ...
-
 class CATMiner:
-    def __init__(self, path: str = None, out_dir: str = None, file_type: FileType = None, **kwargs):
+    def __init__(self, path: str = None, out_dir: str = None, file_type: int = 0, **kwargs):
         self.browser = None
         self._path = None
         self._out_dir = None

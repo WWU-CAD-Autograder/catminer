@@ -1,19 +1,54 @@
 import argparse
 import os
+import sys
+
 import catminer
+
+
+def check_dir(path: str) -> bool:
+    """Check if directory or folder exists.
+
+    Parameters
+    ----------
+    path: str
+        Path to directory or file.
+
+    Returns
+    -------
+    bool
+        Returns true if the directory exists.
+    """
+    path = os.path.abspath(path)
+
+    if os.path.exists(path) and not os.path.isdir(path):
+        raise NotADirectoryError(f"Directory of {path} not found.")
+
+    if not os.path.exists(path):
+        response = input(f"{path} was not found.\n"
+                         "Would you like to create the directory [Y] or abort [N]?\n"
+                         "Enter Y/N: ")
+        if response == 'y' or response == 'Y':
+            os.makedirs(path)
+            return True
+        else:
+            print("Exiting...")
+            sys.exit(0)
+
+    return os.path.exists(path)
+
 
 # create parser and subparsers
 parser = argparse.ArgumentParser(description='These are the available commands for catminer:',
                                  epilog='Use "catminer <command> -h" to get more help on the command.')
-subparsers = parser.add_subparsers(help='sub-commands')
+subparsers = parser.add_subparsers(help='sub-commands', dest='command')
 
 # 'run' command
 run_parser = subparsers.add_parser('run', description='Run catminer using these commands:',
                                    help='run the batch process')
 
-run_parser.add_argument('-b', '--bat-file', nargs=1, default=os.getcwd(), type=str, metavar='path',
+run_parser.add_argument('-b', '--bat-file', nargs='?', const=os.getcwd(), default=os.getcwd(), type=str, metavar='path',
                         help='generate a .bat file for easier automation')
-run_parser.add_argument('-d', '--dir', nargs=1, default=os.getcwd(), type=str, metavar='path',
+run_parser.add_argument('-i', '--in_dir', nargs=1, default=os.getcwd(), type=str, metavar='path',
                         help='the run directory')
 run_parser.add_argument('-f', '--file-type', nargs=1, default='xml', type=str, choices=['xml', 'json'],
                         help='choose the output file type (default: xml)')
@@ -22,10 +57,40 @@ run_parser.add_argument('-r', '--relative-path', action='store_true', help='use 
 
 # parse args
 args = parser.parse_args()
+d_args = vars(args)
 
 # bring up 'run' help if no command input
 if len(vars(args)) == 0:
     parser.parse_args(args=['run', '-h'])
 
-print(args)
+# process arguments
+if args.command == 'run':
 
+    if args.out_dir is None:
+        args.out_dir = os.path.join(os.getcwd(), 'catminer-output')
+
+        if '-b' not in sys.argv:
+            os.makedirs(args.out_dir, exist_ok=True)
+
+    # check for list instances
+    for key, value in d_args.items():
+        if isinstance(value, list):
+            d_args[key] = d_args[key][0]
+
+    # check the entered directories
+    for i in ['in_dir', 'out_dir', 'bat_file']:
+        check_dir(d_args[i])
+
+    # create bat file or start miner
+    if '-b' in sys.argv:
+        bat_str = f'python catminer run -f {args.file_type}^\n' + \
+            f' -i "{"." if "-r" in sys.argv else args.in_dir}"^\n' + \
+            f' -o "{os.path.join(".", "catminer") if "-r" in sys.argv else args.out_dir}"\n'
+
+        with open(os.path.join(args.bat_file, "catminer.bat"), 'w') as f:
+            f.write(bat_str)
+            f.close()
+    else:
+        file_type = {'xml': catminer.XML, 'json': catminer.JSON}
+        miner = catminer.CATMiner(args.in_dir, args.out_dir, file_type[args.file_type])
+        miner.begin()
