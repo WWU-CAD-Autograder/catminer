@@ -1,17 +1,19 @@
-import logging
 import pyvba
+
+XML = ...
+JSON = ...
+
+logger = ...
 
 def timer(task: str):
     def decorator(func):
         def wrapper(*args, **kwargs): ...
 
-def get_path(rel_path: str) -> str: ...
-def _update_log(text: str, level: int = logging.INFO) -> None: ...
-
 class CATMiner:
     def __init__(self, path: str = None, out_dir: str = None, file_type: int = 0, **kwargs):
         self.browser = None
         self._path = None
+        self._tmp_path = None
         self._out_dir = None
         self._file_type = None
         self._start_time = None

@@ -2,6 +2,7 @@ import os
 import re
 import time
 import unittest
+import logging
 
 import catminer
 
@@ -10,6 +11,26 @@ class TestExternalFunctions(unittest.TestCase):
     @classmethod
     def setUpClass(cls) -> None:
         cls.path = os.path.dirname(__file__)
+        cls.out_path = os.path.abspath(r'.\out')
+        cls.log_path = os.path.abspath(os.path.join(cls.out_path, 'catminer.log'))
+
+        if not os.path.exists(cls.out_path):
+            os.makedirs(os.path.abspath(cls.out_path))
+        elif os.path.exists(cls.log_path):
+            os.remove(cls.log_path)
+
+        logger = catminer.catminer.logger
+        [logger.removeHandler(i) for i in logger.handlers]
+
+        fh = logging.FileHandler(cls.log_path, 'w')
+        fh.setLevel(logging.INFO)
+
+        formatter = logging.Formatter('%(asctime)s - %(levelname)s - %(message)s', datefmt='%Y-%m-%d %H:%M:%S')
+        fh.setFormatter(formatter)
+
+        logger.addHandler(fh)
+        logger.setLevel(logging.INFO)
+        logging.info('----BEGIN TESTS----')
 
     def test_timer(self):
         # test function
@@ -24,23 +45,10 @@ class TestExternalFunctions(unittest.TestCase):
         end_time = time.perf_counter()
 
         # open and read the log output
-        path = os.path.join(self.path, r'.\out\catminer.log')
-        with open(path, 'r') as f:
+        with open(self.log_path, 'r') as f:
             text = f.read()
 
         # compare
         expected = end_time - start_time
         measured = float(re.findall(r"\d+\.\d+(?= seconds)", text)[0])
         self.assertAlmostEqual(expected, measured, 2)
-
-    def test_get_path(self):
-        # test that the path exists
-        rel_path = r'..\tests\out'
-        path = catminer.get_path(rel_path)
-        self.assertTrue(os.path.exists(path))
-
-
-class TestMiner(unittest.TestCase):
-    @classmethod
-    def setUpClass(cls) -> None:
-        ...

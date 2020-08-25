@@ -7,18 +7,18 @@ import time
 import traceback
 import zipfile as zf
 
-TYPE_RE = re.compile(r'(?<=\.CAT)[^.]*?$')
-FILE_RE = re.compile(r'[^\\]+?(?=\.CAT)')
+# define static vars
 DIR_PATH = os.path.dirname(__file__)
 
-logger = logging.getLogger(__name__)
-logging.basicConfig(
-    datefmt='%Y-%m-%d %H:%M:%S',
-    format='%(asctime)s - %(levelname)s - %(message)s',
-    level=logging.NOTSET,
-    filename=os.path.join(DIR_PATH, r'..\tests\out\catminer.log'),
-    filemode='w'
-)
+# define regex
+type_re = re.compile(r'(?<=\.CAT)[^.]*?$')
+file_re = re.compile(r'[^\\]+?(?=\.CAT)')
+
+# define stub vars
+XML = 0
+JSON = 1
+
+logger = logging.getLogger()
 
 
 def timer(task: str):
@@ -28,41 +28,17 @@ def timer(task: str):
             start_time = time.perf_counter()
 
             text = f"Started {task}."
-            print(text)
             logger.info(text)
 
             output = func(*args, **kwargs)
             end_time = time.perf_counter()
 
             text = f"Finished {task} in {(end_time - start_time):.4f} seconds."
-            print(text)
             logger.info(text)
 
             return output
         return wrapper
     return decorator
-
-
-def get_path(rel_path: str) -> str:
-    """Returns the complete path given a relative one.
-
-    Parameters
-    ----------
-    rel_path: str
-        The relative path of the file.
-
-    Returns
-    -------
-    str
-        The complete path of the file.
-    """
-    return os.path.join(DIR_PATH, rel_path)
-
-
-def _update_log(text: str, level: int = logging.INFO) -> None:
-    """Add an entry to the log and print out step."""
-    logger.log(level, text)
-    print(text)
 
 
 class CATMiner:
@@ -86,19 +62,25 @@ class CATMiner:
 
         # change logger properties
         global logger
+        [logger.removeHandler(i) for i in logger.handlers]
 
         fh = logging.FileHandler(os.path.join(self._out_dir, r'catminer.log'), 'w')
+        sh = logging.StreamHandler(sys.stdout)
+
         fh.setLevel(logging.INFO)
+        sh.setLevel(logging.INFO)
 
         formatter = logging.Formatter('%(asctime)s - %(levelname)s - %(message)s', datefmt='%Y-%m-%d %H:%M:%S')
         fh.setFormatter(formatter)
+        sh.setFormatter(formatter)
 
         logger.addHandler(fh)
+        logger.addHandler(sh)
         logger.setLevel(logging.INFO)
 
     def begin(self) -> None:
         """Commence the data-mining process once setting are in place, if applicable."""
-        _update_log('---------------BEGIN EXPORT---------------')
+        logger.info('---------------BEGIN EXPORT---------------')
 
         try:
             self._dir_crawl(self._path, self._out_dir)
@@ -126,7 +108,7 @@ class CATMiner:
                 dir_path = os.path.join(out_dir, file)
 
                 if not os.path.exists(dir_path):
-                    _update_log(f'Created path: {dir_path}.')
+                    logger.info(f'Created path: {dir_path}.')
                     os.mkdir(dir_path)
 
                 self._dir_crawl(file_path, dir_path)
@@ -141,17 +123,17 @@ class CATMiner:
                         new_path = os.path.join(path, file_name)
 
                         if not os.path.exists(new_out_dir):
-                            _update_log(f'Created path: {new_out_dir}.')
+                            logger.info(f'Created path: {new_out_dir}.')
                             os.mkdir(new_out_dir)
                         if not os.path.exists(new_path):
-                            _update_log(f'Created path: {new_path}.')
+                            logger.info(f'Created path: {new_path}.')
                             os.mkdir(new_path)
 
                         zfile.extractall(new_path)
                         self._dir_crawl(new_path, new_out_dir)
 
                 # CATIA file found
-                elif TYPE_RE.search(file_path):
+                elif type_re.search(file_path):
                     self._export_file(os.path.join(path, file), out_dir)
 
     def _cat_type(self, cat_file: str) -> pyvba.Browser:
@@ -175,7 +157,7 @@ class CATMiner:
 
         # ensure that the file is open
         try:
-            file_type = TYPE_RE.findall(cat_file)[0]
+            file_type = type_re.findall(cat_file)[0]
 
             # get the right CATIA object
             if file_type == "Product":
@@ -209,11 +191,11 @@ class CATMiner:
         -----
         The document is opened in CATIA then closed when finished. Errors are logged.
         """
-        file_name = FILE_RE.findall(path)[0]
-        file_type = TYPE_RE.findall(path)[0]
+        file_name = file_re.findall(path)[0]
+        file_type = type_re.findall(path)[0]
 
         # open the file
-        _update_log(f"Opening \"{file_name + '.CAT' + file_type}\".")
+        logger.info(f"Opening \"{file_name + '.CAT' + file_type}\".")
         opened_file = self.browser.Documents.Open(path)
         browser = self._cat_type(path)
 
@@ -234,7 +216,7 @@ class CATMiner:
         """Cleans up any open files."""
         self.browser = None
         total_time = self._start_time - time.perf_counter()
-        _update_log(f"Finished batch export in {total_time:.4f}.")
+        logger.info(f"Finished batch export in {total_time:.4f}.")
 
 
 if __name__ == "__main__":

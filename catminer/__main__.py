@@ -56,7 +56,13 @@ run_parser.add_argument('-o', '--out-dir', nargs=1, type=str, metavar='path', he
 run_parser.add_argument('-r', '--relative-path', action='store_true', help='use the relative path to run catminer')
 
 # parse args
-args = parser.parse_args()
+args = None
+
+if 'pytest' in sys.argv[0]:
+    args = parser.parse_args([])
+else:
+    args = parser.parse_args()
+
 d_args = vars(args)
 
 # bring up 'run' help if no command input
@@ -65,12 +71,9 @@ if len(vars(args)) == 0:
 
 # process arguments
 if args.command == 'run':
-
-    if args.out_dir is None:
+    # resolve out directory
+    if args.out_dir is None or args.in_dir == args.out_dir:
         args.out_dir = os.path.join(os.getcwd(), 'catminer-output')
-
-        if '-b' not in sys.argv:
-            os.makedirs(args.out_dir, exist_ok=True)
 
     # check for list instances
     for key, value in d_args.items():
@@ -79,6 +82,9 @@ if args.command == 'run':
 
     # check the entered directories
     for i in ['in_dir', 'out_dir', 'bat_file']:
+        if d_args['out_dir'] == os.path.join(os.getcwd(), 'catminer-output'):
+            continue
+
         check_dir(d_args[i])
 
     # create bat file or start miner
