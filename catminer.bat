@@ -1,3 +1,3 @@
-python catminer run -f xml^
+python catminer run -f -t xml^
  -i ".\input"^
  -o ".\output"

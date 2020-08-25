@@ -4,6 +4,7 @@ import pyvba
 import re
 import shutil
 import sys
+import textwrap
 import time
 import traceback
 import zipfile as zf
@@ -64,6 +65,7 @@ class CATMiner:
         self._tmp_dir = os.path.join(self._out_dir, '.catminer')
         self._file_type = file_type
         self._start_time = time.perf_counter()
+        self._kwargs = kwargs
 
         # change logger properties
         global logger
@@ -85,7 +87,15 @@ class CATMiner:
 
     def begin(self) -> None:
         """Commence the data-mining process once setting are in place, if applicable."""
-        logger.info('---------------BEGIN EXPORT---------------')
+        text_art = textwrap.dedent(r"""
+                         _               _
+              ___  __ _ | |_  _ __ ___  (_) _ __    ___  _ __
+             / __|/ _` || __|| '_ ` _ \ | || '_ \  / _ \| '__|
+            | (__| (_| || |_ | | | | | || || | | ||  __/| |
+             \___|\__,_| \__||_| |_| |_||_||_| |_| \___||_|
+            ==================================================""")
+        print(text_art)
+        logger.info('CATMINER RUNNING...')
 
         try:
             self._dir_crawl(self._path, self._out_dir)
@@ -143,7 +153,7 @@ class CATMiner:
                 # CATIA file found
                 elif type_re.search(file_path):
                     # check if file has been previously processed
-                    if os.path.exists(out_dir):
+                    if not self._kwargs.get('force_export', False) and os.path.exists(out_dir):
                         file_name = file_re.findall(file_path)[0]
                         file_type = type_re.findall(file_path)[0]
                         extension_dict = {str(XML): '.xml', str(JSON): '.json'}
@@ -236,6 +246,7 @@ class CATMiner:
         """Cleans up any open files."""
         self.browser = None
         try:
+            logger.info(f'Removing {self._tmp_dir}.')
             shutil.rmtree(self._tmp_dir)
         except FileNotFoundError:
             logger.error('Directory ".catminer" not found! Skipping removal...')

@@ -50,9 +50,10 @@ run_parser.add_argument('-b', '--bat-file', nargs='?', const=os.getcwd(), defaul
                         help='generate a .bat file for easier automation')
 run_parser.add_argument('-i', '--in_dir', nargs=1, default=os.getcwd(), type=str, metavar='path',
                         help='the run directory')
-run_parser.add_argument('-f', '--file-type', nargs=1, default='xml', type=str, choices=['xml', 'json'],
-                        help='choose the output file type (default: xml)')
 run_parser.add_argument('-o', '--out-dir', nargs=1, type=str, metavar='path', help='set the output directory')
+run_parser.add_argument('-f', '--force-export', action='store_true', help='export previously exported files')
+run_parser.add_argument('-t', '--file-type', nargs=1, default='xml', type=str, choices=['xml', 'json'],
+                        help='choose the output file type (default: xml)')
 run_parser.add_argument('-r', '--relative-path', action='store_true', help='use the relative path to run catminer')
 
 # parse args
@@ -89,7 +90,7 @@ if args.command == 'run':
 
     # create bat file or start miner
     if '-b' in sys.argv:
-        bat_str = f'python catminer run -f {args.file_type}^\n' + \
+        bat_str = f'python catminer run {"-f " if d_args.get("force_export", False) else ""}-t {args.file_type}^\n' + \
             f' -i "{"." if "-r" in sys.argv else args.in_dir}"^\n' + \
             f' -o "{os.path.join(".", "catminer") if "-r" in sys.argv else args.out_dir}"\n'
 
@@ -98,5 +99,6 @@ if args.command == 'run':
             f.close()
     else:
         file_type = {'xml': catminer.XML, 'json': catminer.JSON}
-        miner = catminer.CATMiner(args.in_dir, args.out_dir, file_type[args.file_type])
+        miner = catminer.CATMiner(args.in_dir, args.out_dir, file_type[args.file_type],
+                                  force_export=d_args.get("force_export", False))
         miner.begin()
