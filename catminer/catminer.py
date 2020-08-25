@@ -9,8 +9,6 @@ import time
 import traceback
 import zipfile as zf
 
-# define static vars
-DIR_PATH = os.path.dirname(__file__)
 
 # define regular expressions
 type_re = re.compile(r'(?<=\.CAT)[^.]*?$')
@@ -118,6 +116,10 @@ class CATMiner:
         """
         for file in os.listdir(path):
             file_path = os.path.join(path, file)
+
+            # skip if reading the output directory
+            if file_path == self._out_dir:
+                continue
 
             # directory found -> scan it
             if os.path.isdir(file_path):
