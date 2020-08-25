@@ -1,4 +1,5 @@
 import setuptools
+import os
 
 with open("README.md", "r") as fh:
     long_description = fh.read()
@@ -21,6 +22,6 @@ setuptools.setup(
         "Programming Language :: Python :: 3",
     ],
     install_requires=['pyvba', 'pywin32'],
-    scripts=[r'bin\catminer'],
+    scripts=[r'.\bin\catminer'],
     python_requires='>=3',
 )
