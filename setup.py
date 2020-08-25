@@ -23,6 +23,6 @@ setuptools.setup(
         "Programming Language :: Python :: 3",
     ],
     install_requires=['pyvba', 'pywin32'],
-    scripts=[os.path.abspath(r'.\bin\catminer')],
+    scripts=['bin/catminer'],
     python_requires='>=3',
 )
