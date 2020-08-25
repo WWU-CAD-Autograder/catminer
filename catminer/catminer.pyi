@@ -10,11 +10,11 @@ def timer(task: str):
         def wrapper(*args, **kwargs): ...
 
 class CATMiner:
-    def __init__(self, path: str = None, out_dir: str = None, file_type: int = 0, **kwargs):
+    def __init__(self, path: str, out_dir: str, file_type: int = 0, **kwargs):
         self.browser = None
         self._path = None
-        self._tmp_path = None
         self._out_dir = None
+        self._tmp_dir = None
         self._file_type = None
         self._start_time = None
         ...

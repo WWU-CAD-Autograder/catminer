@@ -2,6 +2,7 @@ import logging
 import os
 import pyvba
 import re
+import shutil
 import sys
 import time
 import traceback
@@ -10,9 +11,9 @@ import zipfile as zf
 # define static vars
 DIR_PATH = os.path.dirname(__file__)
 
-# define regex
+# define regular expressions
 type_re = re.compile(r'(?<=\.CAT)[^.]*?$')
-file_re = re.compile(r'[^\\]+?(?=\.CAT)')
+file_re = re.compile(r'[^\\]+(?=\.)')
 
 # define stub vars
 XML = 0
@@ -42,7 +43,7 @@ def timer(task: str):
 
 
 class CATMiner:
-    def __init__(self, path: str = None, out_dir: str = None, file_type: int = 0, **kwargs):
+    def __init__(self, path: str, out_dir: str, file_type: int = 0, **kwargs):
         """The CATMiner class is used to extract data in a batch process.
 
         Parameters
@@ -55,8 +56,9 @@ class CATMiner:
             The file types represented as an integer (e.g. catminer.XML, catminer.JSON)
         """
         self.browser = pyvba.Browser(kwargs.get('app', 'CATIA.Application'))
-        self._path = os.path.abspath(path) if path is not None else os.path.join(DIR_PATH, r"..\input")
-        self._out_dir = os.path.abspath(out_dir) if out_dir is not None else os.path.join(DIR_PATH, r"..\output")
+        self._path = os.path.abspath(path)
+        self._out_dir = os.path.abspath(out_dir)
+        self._tmp_dir = os.path.join(self._out_dir, '.catminer')
         self._file_type = file_type
         self._start_time = time.perf_counter()
 
@@ -85,13 +87,14 @@ class CATMiner:
         try:
             self._dir_crawl(self._path, self._out_dir)
         except BaseException:
+            # log error
             exc_type, exc_value, exc_traceback = sys.exc_info()
             [
                 logger.critical(re.sub(r'(\n| {2,})', '', str(i)))
                 for i in traceback.format_exception(exc_type, exc_value, exc_traceback)
             ]
-            time.sleep(0.1)
-            traceback.print_exception(exc_type, exc_value, exc_traceback)
+        finally:
+            self._finish()
 
     def _dir_crawl(self, path: str, out_dir: str) -> None:
         """Crawl through, process, and duplicate the directory.
@@ -118,19 +121,21 @@ class CATMiner:
                 # zipfile found -> unzip it and scan it
                 if zf.is_zipfile(file_path):
                     with zf.ZipFile(file_path) as zfile:
-                        file_name = re.findall(r'(?<=\\)[^\\]+?(?=\.zip)', zfile.filename)[0]
+                        file_name = file_re.findall(zfile.filename)[0]
                         new_out_dir = os.path.join(out_dir, file_name)
-                        new_path = os.path.join(path, file_name)
+                        tmp_path = os.path.join(self._tmp_dir, new_out_dir.replace(self._out_dir, '')[1:])
 
+                        # create missing directories
                         if not os.path.exists(new_out_dir):
                             logger.info(f'Created path: {new_out_dir}.')
                             os.mkdir(new_out_dir)
-                        if not os.path.exists(new_path):
-                            logger.info(f'Created path: {new_path}.')
-                            os.mkdir(new_path)
+                        if not os.path.exists(tmp_path):
+                            logger.info(f'Created path: {tmp_path}.')
+                            os.makedirs(tmp_path, exist_ok=True)
 
-                        zfile.extractall(new_path)
-                        self._dir_crawl(new_path, new_out_dir)
+                        # extract zip to temp location and continue
+                        zfile.extractall(tmp_path)
+                        self._dir_crawl(tmp_path, new_out_dir)
 
                 # CATIA file found
                 elif type_re.search(file_path):
@@ -215,9 +220,15 @@ class CATMiner:
     def _finish(self) -> None:
         """Cleans up any open files."""
         self.browser = None
-        total_time = self._start_time - time.perf_counter()
-        logger.info(f"Finished batch export in {total_time:.4f}.")
+        shutil.rmtree(self._tmp_dir)
+
+        # check total time
+        total_time = time.perf_counter() - self._start_time
+        logger.info(f"Finished batch export in {total_time:.4f} seconds.")
 
 
 if __name__ == "__main__":
+    if not os.path.exists(r"..\output"):
+        os.mkdir(r"..\output")
+
     CATMiner(r"..\input", r"..\output").begin()
