@@ -29,6 +29,7 @@ def check_dir(path: str) -> bool:
                          "Enter Y/N: ")
         if response == 'y' or response == 'Y':
             os.makedirs(path)
+            print("Starting catminer...")
             return True
         else:
             print("Exiting...")

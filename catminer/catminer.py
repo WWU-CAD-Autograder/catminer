@@ -8,7 +8,7 @@ import textwrap
 import time
 import traceback
 import zipfile as zf
-
+from datetime import datetime
 
 # define regular expressions
 type_re = re.compile(r'(?<=\.CAT)[^.]*?$')
@@ -69,7 +69,11 @@ class CATMiner:
         global logger
         [logger.removeHandler(i) for i in logger.handlers]
 
-        fh = logging.FileHandler(os.path.join(self._out_dir, r'catminer.log'), 'w')
+        log_path = os.path.join(self._out_dir, 'logs')
+        os.makedirs(log_path, exist_ok=True)
+        log_name = f'catminer-{datetime.now().strftime("%d-%m-%Y")}.log'
+
+        fh = logging.FileHandler(os.path.join(log_path, log_name), 'a')
         sh = logging.StreamHandler(sys.stdout)
 
         fh.setLevel(logging.INFO)
@@ -85,7 +89,7 @@ class CATMiner:
 
     def begin(self) -> None:
         """Commence the data-mining process once setting are in place, if applicable."""
-        text_art = textwrap.dedent(r"""
+        text_art = textwrap.dedent(r"""            
                          _               _
               ___  __ _ | |_  _ __ ___  (_) _ __    ___  _ __
              / __|/ _` || __|| '_ ` _ \ | || '_ \  / _ \| '__|
