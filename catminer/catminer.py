@@ -44,6 +44,15 @@ def timer(task: str):
     return decorator
 
 
+def cat_in_dir(path: str) -> bool:
+    """Returns true if a CATIA (.CAT*) files exists in the directory."""
+    return any(
+        type_re.search(file)
+        for _, _, files in os.walk(path)
+        for file in files
+    )
+
+
 class CATMiner:
     def __init__(self, path: str, out_dir: str, file_type: int = 0, **kwargs):
         """The CATMiner class is used to extract data in a batch process.
@@ -128,7 +137,7 @@ class CATMiner:
                 continue
 
             # directory found -> scan it
-            if os.path.isdir(file_path):
+            if os.path.isdir(file_path) and cat_in_dir(file_path):
                 dir_path = os.path.join(out_dir, file)
 
                 if not os.path.exists(dir_path):
@@ -162,14 +171,12 @@ class CATMiner:
                 elif type_re.search(file_path):
                     # check if file has been previously processed
                     if not self._kwargs.get('force_export', False) and os.path.exists(out_dir):
-                        file_name = file_re.findall(file_path)[0]
-                        file_type = type_re.findall(file_path)[0]
                         extension_dict = {str(XML): '.xml', str(JSON): '.json'}
                         extension = extension_dict[str(self._file_type)]
-                        file_loc = os.path.join(out_dir, file_name + extension)
+                        file_loc = os.path.join(out_dir, file + extension)
 
                         if os.path.exists(file_loc):
-                            logger.warning(f'Skipping "{file_name + ".CAT" + file_type}". File already exported!')
+                            logger.warning(f'Skipping "{file}". File already exported!')
                             continue
 
                     self._export_file(os.path.join(path, file), out_dir)
@@ -231,9 +238,10 @@ class CATMiner:
         """
         file_name = file_re.findall(path)[0]
         file_type = type_re.findall(path)[0]
+        full_name = file_name + '.CAT' + file_type
 
         # open the file
-        logger.info(f"Opening \"{file_name + '.CAT' + file_type}\".")
+        logger.info(f"Opening \"{full_name}\".")
         opened_file = self.browser.Documents.Open(path)
 
         try:
@@ -246,7 +254,7 @@ class CATMiner:
                 exporter = pyvba.XMLExport(browser, skip_func=True, skip_err=True)
 
             # export the file and start a timer
-            timer(f"export for \"{file_name + '.CAT' + file_type}\"")(exporter.save)(file_name, out_dir)
+            timer(f"export for \"{full_name}\"")(exporter.save)(full_name, out_dir)
         finally:
             # ensure that the file closes
             opened_file.Close()

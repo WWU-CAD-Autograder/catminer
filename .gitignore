@@ -131,4 +131,5 @@ dmypy.json
 # Local folders
 output/*
 input/*
+bkup/*
 !tests/**

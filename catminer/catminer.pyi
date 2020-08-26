@@ -12,6 +12,9 @@ def timer(task: str) -> Any:
         def wrapper(*args, **kwargs) -> Any: ...
 
 
+def cat_in_dir(path: str) -> bool:
+
+
 class CATMiner:
     def __init__(self, path: str, out_dir: str, file_type: int = 0, **kwargs):
         self.browser = ...
