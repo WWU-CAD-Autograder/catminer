@@ -49,7 +49,7 @@ def main():
 
     run_parser.add_argument('-b', '--bat-file', nargs='?', const=os.getcwd(), default=os.getcwd(), type=str, metavar='path',
                             help='generate a .bat file for easier automation')
-    run_parser.add_argument('-i', '--in_dir', nargs=1, default=os.getcwd(), type=str, metavar='path',
+    run_parser.add_argument('-i', '--in-dir', nargs=1, default=os.getcwd(), type=str, metavar='path',
                             help='set the run directory')
     run_parser.add_argument('-o', '--out-dir', nargs=1, type=str, metavar='path', help='set the output directory')
     run_parser.add_argument('-f', '--force-export', action='store_true', help='export previously exported files')
@@ -85,9 +85,6 @@ def main():
 
         # check the entered directories
         for i in ['in_dir', 'out_dir', 'bat_file']:
-            if d_args['out_dir'] == os.path.join(os.getcwd(), 'catminer-output'):
-                continue
-
             check_dir(d_args[i])
 
         # create bat file or start miner

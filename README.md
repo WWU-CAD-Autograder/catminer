@@ -3,8 +3,8 @@
 [![PyPI](https://img.shields.io/pypi/v/catminer)](https://pypi.org/project/catminer/)
 [![GitHub](https://img.shields.io/github/license/WWU-CAD-Autograder/catminer)](https://github.com/WWU-CAD-Autograder/catminer)
 
-The catminer package is designed to data-mine from CATIA (.CAT*) files into readable formats. CATIA is a CAD software 
-developed by Dassault Systèmes.
+The catminer package is designed to data-mine from CATIA (.CAT*) files into readable formats. CATIA is a CAD design 
+application developed by Dassault Systèmes.
 
 ## Getting Started
 Install the Python package:
@@ -20,6 +20,9 @@ Open CATIA then run catminer:
 ```cmd
 catminer run
 ```
+> Note 1: CATIA may not need to be open, however, the wrong version may launch
+
+> Note 2: Press `ctrl + break` to end the program mid process.
 
 <br>
 

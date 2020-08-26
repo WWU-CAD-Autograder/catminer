@@ -97,6 +97,8 @@ class CATMiner:
 
         try:
             self._dir_crawl(self._path, self._out_dir)
+        except KeyboardInterrupt:
+            logger.critical('User break detected, stopping catminer gracefully...')
         except BaseException:
             # log error
             exc_type, exc_value, exc_traceback = sys.exc_info()
@@ -229,20 +231,22 @@ class CATMiner:
         # open the file
         logger.info(f"Opening \"{file_name + '.CAT' + file_type}\".")
         opened_file = self.browser.Documents.Open(path)
-        browser = self._cat_type(path)
 
-        # select the right exporter
-        if self._file_type == 1:
-            exporter = pyvba.JSONExport(browser, skip_func=True, skip_err=True)
-        else:
-            exporter = pyvba.XMLExport(browser, skip_func=True, skip_err=True)
+        try:
+            browser = self._cat_type(path)
 
-        # export the file and start a timer
-        timer(f"export for \"{file_name + '.CAT' + file_type}\"")(exporter.save)(file_name, out_dir)
+            # select the right exporter
+            if self._file_type == 1:
+                exporter = pyvba.JSONExport(browser, skip_func=True, skip_err=True)
+            else:
+                exporter = pyvba.XMLExport(browser, skip_func=True, skip_err=True)
 
-        # ensure that the file closes
-        opened_file.Close()
-        time.sleep(1)
+            # export the file and start a timer
+            timer(f"export for \"{file_name + '.CAT' + file_type}\"")(exporter.save)(file_name, out_dir)
+        finally:
+            # ensure that the file closes
+            opened_file.Close()
+            time.sleep(0.5)
 
     def _finish(self) -> None:
         """Cleans up any open files."""
@@ -255,7 +259,7 @@ class CATMiner:
 
         # check total time
         total_time = time.perf_counter() - self._start_time
-        logger.info(f"Finished batch export in {total_time:.4f} seconds.")
+        logger.info(f"Finished batch export in {total_time:.4f} seconds.\n")
 
 
 if __name__ == "__main__":
