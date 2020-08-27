@@ -5,7 +5,7 @@ with open("README.md", "r") as fh:
 
 setuptools.setup(
     name="catminer",
-    version="1.0",
+    version="1.1",
     author="Jack Wilson",
     description="Data-mining tool for .CAT* (CATIA) files.",
     long_description=long_description,
@@ -20,9 +20,9 @@ setuptools.setup(
         "Operating System :: Microsoft :: Windows",
         "Programming Language :: Python :: 3",
     ],
-    install_requires=['pyvba', 'pywin32'],
+    install_requires=['pyvba', 'tqdm'],
     entry_points={
         'console_scripts': ['catminer = catminer.__main__:main']
     },
-    python_requires='>=3',
+    python_requires='>=3.7',
 )

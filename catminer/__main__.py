@@ -48,8 +48,8 @@ def main():
     run_parser = subparsers.add_parser('run', description='Run catminer using these commands:',
                                        help='run the batch process')
 
-    run_parser.add_argument('-b', '--bat-file', nargs='?', const=os.getcwd(), default=os.getcwd(), type=str, metavar='path',
-                            help='generate a .bat file for easier automation')
+    run_parser.add_argument('-b', '--bat-file', nargs='?', const=os.getcwd(), default=os.getcwd(), type=str,
+                            metavar='path', help='generate a .bat file for easier automation')
     run_parser.add_argument('-i', '--in-dir', nargs=1, default=os.getcwd(), type=str, metavar='path',
                             help='set the run directory')
     run_parser.add_argument('-o', '--out-dir', nargs=1, type=str, metavar='path', help='set the output directory')
@@ -91,8 +91,8 @@ def main():
         # create bat file or start miner
         if '-b' in sys.argv:
             bat_str = f'python catminer run {"-f " if d_args.get("force_export", False) else ""}-t {args.file_type}^\n' + \
-                f' -i "{"." if "-r" in sys.argv else args.in_dir}"^\n' + \
-                f' -o "{os.path.join(".", "catminer") if "-r" in sys.argv else args.out_dir}"\n'
+                      f' -i "{"." if "-r" in sys.argv else args.in_dir}"^\n' + \
+                      f' -o "{os.path.join(".", "catminer") if "-r" in sys.argv else args.out_dir}"\n'
 
             with open(os.path.join(args.bat_file, "catminer.bat"), 'w') as f:
                 f.write(bat_str)

@@ -7,6 +7,7 @@ verify_ssl = true
 
 [packages]
 pyvba = "*"
+tqdm = "*"
 
 [requires]
 python_version = "3.7"

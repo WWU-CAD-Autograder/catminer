@@ -14,7 +14,7 @@ pip install catminer
 
 To export data, navigate to the file or directory:
 ```cmd
-cd <file or directory>
+cd /d path
 ```
 Open CATIA then run catminer:
 ```cmd
@@ -22,7 +22,8 @@ catminer run
 ```
 > Note 1: CATIA may not need to be open, however, the wrong version may launch
 
-> Note 2: Press `ctrl + break` to end the program mid process.
+> Note 2: Press `ctrl + c` for a second to end the program mid process. Alternatively, press `ctrl + break` for a 
+> non-graceful exit.
 
 <br>
 
@@ -41,8 +42,8 @@ optional arguments:
   -h, --help            show this help message and exit
   -b [path], --bat-file [path]
                         generate a .bat file for easier automation
-  -i path, --in_dir path
-                        the run directory
+  -i path, --in-dir path
+                        set the run directory
   -o path, --out-dir path
                         set the output directory
   -f, --force-export    export previously exported files
