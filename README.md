@@ -20,9 +20,9 @@ Open CATIA then run catminer:
 ```cmd
 catminer run
 ```
-> Note 1: CATIA may not need to be open, however, the wrong version may launch
+> Note 1: CATIA may not need to be open, however, the wrong version may launch.
 
-> Note 2: Press `ctrl + c` for a second to end the program mid process. Alternatively, press `ctrl + break` for a 
+> Note 2: Press `ctrl + c` for a second to end the program gracefully. Alternatively, press `ctrl + break` for a 
 > non-graceful exit.
 
 <br>

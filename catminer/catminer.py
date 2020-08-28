@@ -47,39 +47,38 @@ def timer(task: str):
     return decorator
 
 
-def cat_file_list(path: str) -> list:
-    """Return a list of all CATIA (.CAT*) files in the directory."""
-    cats = []
+def cat_count(path: str) -> int:
+    """Return the total amount of CATIA (.CAT*) files in the directory."""
+    cats, total = 0, 1
 
     def process_zip(zipfile: zf.ZipFile):
         """Add all .CAT* files in the zipfile."""
-        nonlocal cats
+        nonlocal cats, total
 
         for name in zipfile.namelist():
+            total += 1
             data = BytesIO(zipfile.read(name))
 
             if '.CAT' in name:
-                cats.append(file_re.findall(name)[0] + '.CAT' + type_re.findall(name)[0])
+                cats += 1
+                print(f"Found {cats}/{total} .CAT* files to convert.", end='\r', flush=True)
             elif zf.is_zipfile(data):
-                with zf.ZipFile(data, 'r') as z:
-                    process_zip(z)
+                with zf.ZipFile(data, 'r') as z2:
+                    process_zip(z2)
 
     for dirpath, _, files in os.walk(path):
         for file in files:
+            total += 1
             file_path = os.path.join(dirpath, file)
 
             if '.CAT' in file:
-                cats.append(file)
+                cats += 1
+                print(f"Found {cats}/{total} .CAT* files to convert.", end='\r', flush=True)
             elif zf.is_zipfile(file_path):
                 with zf.ZipFile(file_path, 'r') as z:
                     process_zip(z)
 
     return cats
-
-
-def cat_in_dir(path: str) -> bool:
-    """Returns true if a CATIA (.CAT*) files exists in the directory."""
-    return any(cat_file_list(path))
 
 
 class TQDMStreamHandler(logging.StreamHandler):
@@ -122,7 +121,7 @@ class CATMiner:
 
         # timing and progress variables
         self._start_time = time.perf_counter()
-        self._to_convert = len(cat_file_list(self._in_dir))
+        self._to_convert = None
         self._file_num = 1
         self._pbar = None
 
@@ -162,7 +161,13 @@ class CATMiner:
             ==================================================""")
         print(text_art)
         logger.info('CATMINER RUNNING...')
-        logger.info(f'Found {self._to_convert} .CAT* files to convert.')
+
+        # find total number of .CAT* files and report progress`
+        logger.info('Searching for .CAT* files...')
+        self._to_convert = cat_count(self._in_dir)
+        logger.info(f'Found {self._to_convert} .CAT* files to convert!')
+        logger.info(f'Export estimated to take {self._to_convert * 15 / 60:.2f} minutes if no previous conversions '
+                    f'have been made.')
         self._pbar = tqdm(total=self._to_convert, desc='Progress: ', unit="file")
 
         # begin the catminer process
@@ -195,7 +200,7 @@ class CATMiner:
                 continue
 
             # directory found -> scan it
-            if os.path.isdir(file_path) and cat_in_dir(file_path):
+            if os.path.isdir(file_path):
                 dir_path = os.path.join(out_dir, file)
 
                 if not os.path.exists(dir_path):

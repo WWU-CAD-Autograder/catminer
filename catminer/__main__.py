@@ -58,9 +58,9 @@ def main():
 
     # generate a bat file
     bat_group.add_argument('-b', '--bat-file', nargs='?', const=os.getcwd(), default=os.getcwd(), type=str,
-                            metavar='path', help='generate a .bat file for easier automation')
+                           metavar='path', help='generate a .bat file for easier automation')
     bat_group.add_argument('-r', '--relative-path', action='store_true',
-                            help='use the relative path to create the .bat file')
+                           help='use the relative path to create the .bat file')
 
     # parse args
     if 'pytest' in sys.argv[0]:
@@ -82,7 +82,7 @@ def main():
                 d_args[key] = d_args[key][0]
 
         # resolve out directory
-        if args.out_dir is None:
+        if args.out_dir is None and '-b' not in sys.argv:
             args.out_dir = os.path.join(os.getcwd(), 'catminer-output')
             os.makedirs(args.out_dir, exist_ok=True)
 
@@ -96,7 +96,7 @@ def main():
                       f'{"-f " if d_args.get("force_export", False) else ""}' \
                       f'-t {args.file_type}^\n' \
                       f' -i "{"." if "-r" in sys.argv else args.in_dir}"^\n' \
-                      f' -o "{os.path.join(".", "catminer") if "-r" in sys.argv else args.out_dir}"\n'
+                      f' -o "{os.path.join(".", "catminer-output") if "-r" in sys.argv else args.out_dir}"\n'
 
             with open(os.path.join(args.bat_file, "catminer.bat"), 'w') as f:
                 f.write(bat_str)
