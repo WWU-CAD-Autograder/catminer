@@ -33,15 +33,13 @@ catminer run -h
 ```
 which yields the following:
 ```
-usage: catminer run [-h] [-b [path]] [-i path] [-o path] [-f] [-t {xml,json}]
+usage: catminer run [-h] [-i path] [-o path] [-f] [-t {xml,json}] [-b [path]]
                     [-r]
 
 Run catminer using these commands:
 
 optional arguments:
   -h, --help            show this help message and exit
-  -b [path], --bat-file [path]
-                        generate a .bat file for easier automation
   -i path, --in-dir path
                         set the run directory
   -o path, --out-dir path
@@ -49,7 +47,13 @@ optional arguments:
   -f, --force-export    export previously exported files
   -t {xml,json}, --file-type {xml,json}
                         choose the output file type (default: xml)
-  -r, --relative-path   use the relative path to run catminer
+
+.bat file:
+  extra commands to make a .bat file instead
+
+  -b [path], --bat-file [path]
+                        generate a .bat file for easier automation
+  -r, --relative-path   use the relative path to create the .bat file
 ```
 
 The supported outputs are dependent on [pyvba](https://pypi.org/project/pyvba/).
