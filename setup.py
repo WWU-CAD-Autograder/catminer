@@ -5,7 +5,7 @@ with open("README.md", "r") as fh:
 
 setuptools.setup(
     name="catminer",
-    version="1.1",
+    version="1.2",
     author="Jack Wilson",
     description="Data-mining tool for .CAT* (CATIA) files.",
     long_description=long_description,

@@ -22,7 +22,7 @@ catminer run
 ```
 > Note 1: CATIA may not need to be open, however, the wrong version may launch.
 
-> Note 2: Press `ctrl + c` for a second to end the program gracefully. Alternatively, press `ctrl + break` for a 
+> Note 2: Press `ctrl + c` momentarily to end the program gracefully. Alternatively, press `ctrl + break` for a 
 > non-graceful exit.
 
 <br>
@@ -33,8 +33,8 @@ catminer run -h
 ```
 which yields the following:
 ```
-usage: catminer run [-h] [-i path] [-o path] [-f] [-t {xml,json}] [-b [path]]
-                    [-r]
+usage: catminer run [-h] [-i path] [-o path] [-t {xml,json}] [-f] [--no-skips]
+                    [-b [path]] [-r]
 
 Run catminer using these commands:
 
@@ -44,9 +44,11 @@ optional arguments:
                         set the run directory
   -o path, --out-dir path
                         set the output directory
-  -f, --force-export    export previously exported files
   -t {xml,json}, --file-type {xml,json}
                         choose the output file type (default: xml)
+  -f, --force-export    overwrite previously exported files
+  --no-skips            ignore the optimized skips - the process will take
+                        much longer
 
 .bat file:
   extra commands to make a .bat file instead

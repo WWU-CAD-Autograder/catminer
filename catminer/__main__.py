@@ -52,9 +52,11 @@ def main():
     run_parser.add_argument('-i', '--in-dir', nargs=1, default=os.getcwd(), type=str, metavar='path',
                             help='set the run directory')
     run_parser.add_argument('-o', '--out-dir', nargs=1, type=str, metavar='path', help='set the output directory')
-    run_parser.add_argument('-f', '--force-export', action='store_true', help='export previously exported files')
     run_parser.add_argument('-t', '--file-type', nargs=1, default='xml', type=str, choices=['xml', 'json'],
                             help='choose the output file type (default: xml)')
+    run_parser.add_argument('-f', '--force-export', action='store_true', help='overwrite previously exported files')
+    run_parser.add_argument('--no-skips', action='store_true',
+                            help='ignore the optimized skips - the process will take much longer')
 
     # generate a bat file
     bat_group.add_argument('-b', '--bat-file', nargs='?', const=os.getcwd(), default=os.getcwd(), type=str,
@@ -105,7 +107,8 @@ def main():
             file_type = {'xml': catminer.XML, 'json': catminer.JSON}
             miner = catminer.CATMiner(
                 args.in_dir, args.out_dir, file_type[args.file_type],
-                force_export=d_args.get("force_export", False),
+                force_export=d_args.get('force_export', False),
+                no_skips=d_args.get('no_skips', False)
             )
             miner.begin()
 

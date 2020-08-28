@@ -307,9 +307,10 @@ class CATMiner:
             time.sleep(1)
             self._cat_type(cat_file)
 
-        browser.skip('Units')
-        browser.skip('Parameters')
-        browser.skip('GeometricElements')
+        # optimize
+        skip = ['Units', 'Parameters', 'GeometricElements']
+        if not self._kwargs.get('no_skips', False):
+            [browser.skip(i) for i in skip]
         return browser
 
     def _export_file(self, in_dir: str, out_dir: str) -> None:
