@@ -59,7 +59,7 @@ def cat_count(path: str) -> int:
             total += 1
             data = BytesIO(zipfile.read(name))
 
-            if '.CAT' in name:
+            if type_re.search(name) and 'NCCode' not in name:
                 cats += 1
                 print(f"Found {cats}/{total} .CAT* files to convert.", end='\r', flush=True)
             elif zf.is_zipfile(data):
@@ -71,7 +71,7 @@ def cat_count(path: str) -> int:
             total += 1
             file_path = os.path.join(dirpath, file)
 
-            if '.CAT' in file:
+            if type_re.search(file) and 'NCCode' not in file:
                 cats += 1
                 print(f"Found {cats}/{total} .CAT* files to convert.", end='\r', flush=True)
             elif zf.is_zipfile(file_path):
@@ -166,8 +166,6 @@ class CATMiner:
         logger.info('Searching for .CAT* files...')
         self._to_convert = cat_count(self._in_dir)
         logger.info(f'Found {self._to_convert} .CAT* files to convert!')
-        logger.info(f'Export estimated to take {self._to_convert * 15 / 60:.2f} minutes if no previous conversions '
-                    f'have been made.')
         self._pbar = tqdm(total=self._to_convert, desc='Progress: ', unit="file")
 
         # begin the catminer process
@@ -212,7 +210,7 @@ class CATMiner:
             # file found
             elif os.path.isfile(file_path):
                 # zipfile found -> unzip it and scan it
-                if zf.is_zipfile(file_path):
+                if zf.is_zipfile(file_path) and ".CATProcess" not in file_path:
                     with zf.ZipFile(file_path, 'r') as zfile:
                         file_name = file_re.findall(zfile.filename)[0]
                         new_out_dir = os.path.join(out_dir, file_name)
@@ -229,6 +227,7 @@ class CATMiner:
                         # extract zip to temp location and continue
                         zfile.extractall(tmp_path)
                         self._dir_crawl(tmp_path, new_out_dir)
+                        shutil.rmtree(tmp_path)
 
                 # CATIA file found
                 elif type_re.search(file_path):
@@ -244,6 +243,10 @@ class CATMiner:
                             self._file_num += 1
                             self._pbar.update(1)
                             continue
+
+                    # non-CATIA .CAT* File
+                    if 'NCCode' in type_re.findall(file_path)[0]:
+                        continue
 
                     self._export_file(os.path.join(in_dir, file), out_dir)
 
@@ -286,6 +289,9 @@ class CATMiner:
             time.sleep(1)
             self._cat_type(cat_file)
 
+        browser.skip('Units')
+        browser.skip('Parameters')
+        browser.skip('GeometricElements')
         return browser
 
     def _export_file(self, in_dir: str, out_dir: str) -> None:
