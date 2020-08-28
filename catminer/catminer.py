@@ -81,6 +81,24 @@ def cat_count(path: str) -> int:
     return cats
 
 
+def rm_empty_dirs(path: str):
+    """Removes all empty directories and subdirectories."""
+    file_exists = False
+
+    for file in os.listdir(path):
+        file_path = os.path.join(path, file)
+
+        if os.path.isdir(file_path):
+            file_exists = rm_empty_dirs(file_path)
+        else:
+            file_exists = True
+
+    if not file_exists:
+        os.rmdir(path)
+
+    return True
+
+
 class TQDMStreamHandler(logging.StreamHandler):
     """Class that overwrites the logging stream handler to allow for tqdm progress bars."""
 
@@ -339,11 +357,16 @@ class CATMiner:
     def _finish(self) -> None:
         """Cleans up any open files."""
         self.browser = None
+
+        # remove temp directory
         try:
             logger.info(f'Removing {self._tmp_dir}.')
             shutil.rmtree(self._tmp_dir)
         except FileNotFoundError:
             logger.error('Directory ".catminer" not found! Skipping removal...')
+
+        # remove empty directories in the export path
+        rm_empty_dirs(self._out_dir)
 
         # check total time
         total_time = time.perf_counter() - self._start_time

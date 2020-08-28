@@ -15,6 +15,9 @@ def timer(task: str) -> Any:
 def cat_count(path: str) -> int: ...
 
 
+def rm_empty_dirs(path: str): ...
+
+
 class CATMiner:
     def __init__(self, in_dir: str, out_dir: str, file_type: int = 0, **kwargs):
         self.browser = ...
