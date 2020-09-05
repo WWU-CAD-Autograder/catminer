@@ -1,4 +1,5 @@
 import logging
+import logging.handlers
 import os
 import pyvba
 import re
@@ -8,7 +9,6 @@ import textwrap
 import time
 import traceback
 import zipfile as zf
-from datetime import datetime
 from io import BytesIO
 
 from tqdm import tqdm
@@ -45,6 +45,40 @@ def timer(task: str):
         return wrapper
 
     return decorator
+
+
+def cat_count(path: str) -> int:
+    """Return the total amount of CATIA (.CAT*) files in the directory."""
+    cats, total = 0, 1
+
+    def process_zip(zipfile: zf.ZipFile):
+        """Add all .CAT* files in the zipfile."""
+        nonlocal cats, total
+
+        for name in zipfile.namelist():
+            total += 1
+            data = BytesIO(zipfile.read(name))
+
+            if type_re.search(name):
+                cats += 1
+                print(f"Found {cats}/{total} .CAT* files to convert.", end='\r', flush=True)
+            elif zf.is_zipfile(data):
+                with zf.ZipFile(data, 'r') as z2:
+                    process_zip(z2)
+
+    for dirpath, _, files in os.walk(path):
+        for file in files:
+            total += 1
+            file_path = os.path.join(dirpath, file)
+
+            if type_re.search(file):
+                cats += 1
+                print(f"Found {cats}/{total} .CAT* files to convert.", end='\r', flush=True)
+            elif zf.is_zipfile(file_path):
+                with zf.ZipFile(file_path, 'r') as z:
+                    process_zip(z)
+
+    return cats
 
 
 def rm_empty_dirs(path: str):
@@ -118,9 +152,11 @@ class CATMiner:
 
         log_path = os.path.join(self._out_dir, 'logs')
         os.makedirs(log_path, exist_ok=True)
-        log_name = f'catminer-{datetime.now().strftime("%d-%m-%Y")}.log'
 
-        fh = logging.FileHandler(os.path.join(log_path, log_name), 'a')
+        fh = logging.handlers.TimedRotatingFileHandler(
+            os.path.join(log_path, 'catminer.log'),
+            when='midnight', interval=1
+        )
         sh = TQDMStreamHandler(sys.stdout)
 
         fh.setLevel(logging.INFO)
@@ -128,6 +164,7 @@ class CATMiner:
 
         formatter = logging.Formatter('%(asctime)s - %(levelname)s - %(message)s', datefmt='%Y-%m-%d %H:%M:%S')
         fh.setFormatter(formatter)
+        fh.suffix = '%m-%d-%Y'
         sh.setFormatter(formatter)
 
         logger.addHandler(fh)
@@ -149,7 +186,7 @@ class CATMiner:
 
         # find total number of .CAT* files and report progress`
         logger.info('Searching for .CAT* files...')
-        self._to_convert = self._cat_count(self._in_dir)
+        self._to_convert = cat_count(self._in_dir)
         logger.info(f'Found {self._to_convert} .CAT* files to convert!')
         self._pbar = tqdm(total=self._to_convert, desc='Progress: ', unit="file")
 
@@ -167,40 +204,6 @@ class CATMiner:
             ]
         finally:
             self._finish()
-
-    def _cat_count(self, path: str) -> int:
-        """Return the total amount of CATIA (.CAT*) files in the directory."""
-        cats, total = 0, 1
-        skip_ext = self._skip_ext
-
-        def process_zip(zipfile: zf.ZipFile):
-            """Add all .CAT* files in the zipfile."""
-            nonlocal cats, total
-
-            for name in zipfile.namelist():
-                total += 1
-                data = BytesIO(zipfile.read(name))
-
-                if type_re.search(name):
-                    cats += 1
-                    print(f"Found {cats}/{total} .CAT* files to convert.", end='\r', flush=True)
-                elif zf.is_zipfile(data):
-                    with zf.ZipFile(data, 'r') as z2:
-                        process_zip(z2)
-
-        for dirpath, _, files in os.walk(path):
-            for file in files:
-                total += 1
-                file_path = os.path.join(dirpath, file)
-
-                if type_re.search(file):
-                    cats += 1
-                    print(f"Found {cats}/{total} .CAT* files to convert.", end='\r', flush=True)
-                elif zf.is_zipfile(file_path):
-                    with zf.ZipFile(file_path, 'r') as z:
-                        process_zip(z)
-
-        return cats
 
     def _dir_crawl(self, in_dir: str, out_dir: str) -> None:
         """Crawl through, process, and duplicate the directory.
@@ -252,7 +255,6 @@ class CATMiner:
                 # .CAT* file found
                 elif type_re.search(file_path):
                     # non-readable or skipped .CAT* file
-                    print(type_re.findall(file_path)[0].lower())
                     if type_re.findall(file_path)[0].lower() in self._skip_ext:
                         logger.warning(f'Skipping "{file}" ({self._file_num}/{self._to_convert}). '
                                        f'File extension in the skip list!')

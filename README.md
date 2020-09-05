@@ -8,16 +8,16 @@ application developed by Dassault Systèmes.
 
 ## Getting Started
 Install the Python package:
-```cmd
+```
 pip install catminer
 ```
 
 To export data, navigate to the file or directory:
-```cmd
+```
 cd /d path
 ```
 Open CATIA then run catminer:
-```cmd
+```
 catminer run
 ```
 > Note 1: CATIA may not need to be open, however, the wrong version may launch.
@@ -28,7 +28,7 @@ catminer run
 <br>
 
 For help on the export options:
-```cmd
+```
 catminer run -h
 ```
 which yields the following:
@@ -60,7 +60,7 @@ The supported outputs are dependent on [pyvba](https://pypi.org/project/pyvba/).
 
 ### Customization
 The settings above can be customized to run by default or from custom setting groups. To customize these settings:
-```cmd
+```
 catminer edit
 ```
 
