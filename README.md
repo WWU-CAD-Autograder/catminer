@@ -33,13 +33,16 @@ catminer run -h
 ```
 which yields the following:
 ```
-usage: catminer run [-h] [-i path] [-o path] [-t {xml,json}] [-f] [--no-skips]
-                    [-b [path]] [-r]
+usage: catminer run [-h] [-u USER_SETTINGS] [-i path] [-o path]
+                    [-t {xml,json}] [-f] [--no-skips] [--active-doc]
 
 Run catminer using these commands:
 
 optional arguments:
   -h, --help            show this help message and exit
+  -u USER_SETTINGS, --user-settings USER_SETTINGS
+                        run using user-defined settings from the settings.ini
+                        file
   -i path, --in-dir path
                         set the run directory
   -o path, --out-dir path
@@ -49,16 +52,17 @@ optional arguments:
   -f, --force-export    overwrite previously exported files
   --no-skips            ignore the optimized skips - the process will take
                         much longer
-
-.bat file:
-  extra commands to make a .bat file instead
-
-  -b [path], --bat-file [path]
-                        generate a .bat file for easier automation
-  -r, --relative-path   use the relative path to create the .bat file
+  --active-doc          export the entire ActiveDocument instead of the part,
+                        product, etc.
 ```
 
 The supported outputs are dependent on [pyvba](https://pypi.org/project/pyvba/).
+
+### Customization
+The settings above can be customized to run by default or from custom setting groups. To customize these settings:
+```cmd
+catminer edit
+```
 
 ## Developer Notes
 Contributors are welcome! The project is [hosted on GitHub](https://github.com/WWU-CAD-Autograder/catminer). Report 

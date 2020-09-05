@@ -47,40 +47,6 @@ def timer(task: str):
     return decorator
 
 
-def cat_count(path: str) -> int:
-    """Return the total amount of CATIA (.CAT*) files in the directory."""
-    cats, total = 0, 1
-
-    def process_zip(zipfile: zf.ZipFile):
-        """Add all .CAT* files in the zipfile."""
-        nonlocal cats, total
-
-        for name in zipfile.namelist():
-            total += 1
-            data = BytesIO(zipfile.read(name))
-
-            if type_re.search(name) and 'NCCode' not in name:
-                cats += 1
-                print(f"Found {cats}/{total} .CAT* files to convert.", end='\r', flush=True)
-            elif zf.is_zipfile(data):
-                with zf.ZipFile(data, 'r') as z2:
-                    process_zip(z2)
-
-    for dirpath, _, files in os.walk(path):
-        for file in files:
-            total += 1
-            file_path = os.path.join(dirpath, file)
-
-            if type_re.search(file) and 'NCCode' not in file:
-                cats += 1
-                print(f"Found {cats}/{total} .CAT* files to convert.", end='\r', flush=True)
-            elif zf.is_zipfile(file_path):
-                with zf.ZipFile(file_path, 'r') as z:
-                    process_zip(z)
-
-    return cats
-
-
 def rm_empty_dirs(path: str):
     """Removes all empty directories and subdirectories."""
     file_exists = False
@@ -136,6 +102,7 @@ class CATMiner:
         self._out_dir = os.path.abspath(out_dir)
         self._tmp_dir = os.path.join(self._out_dir, '.catminer')
         self._file_type = file_type
+        self._skip_ext = [i.lower() for i in kwargs.get('skip_ext', [])]
 
         # timing and progress variables
         self._start_time = time.perf_counter()
@@ -182,7 +149,7 @@ class CATMiner:
 
         # find total number of .CAT* files and report progress`
         logger.info('Searching for .CAT* files...')
-        self._to_convert = cat_count(self._in_dir)
+        self._to_convert = self._cat_count(self._in_dir)
         logger.info(f'Found {self._to_convert} .CAT* files to convert!')
         self._pbar = tqdm(total=self._to_convert, desc='Progress: ', unit="file")
 
@@ -200,6 +167,40 @@ class CATMiner:
             ]
         finally:
             self._finish()
+
+    def _cat_count(self, path: str) -> int:
+        """Return the total amount of CATIA (.CAT*) files in the directory."""
+        cats, total = 0, 1
+        skip_ext = self._skip_ext
+
+        def process_zip(zipfile: zf.ZipFile):
+            """Add all .CAT* files in the zipfile."""
+            nonlocal cats, total
+
+            for name in zipfile.namelist():
+                total += 1
+                data = BytesIO(zipfile.read(name))
+
+                if type_re.search(name):
+                    cats += 1
+                    print(f"Found {cats}/{total} .CAT* files to convert.", end='\r', flush=True)
+                elif zf.is_zipfile(data):
+                    with zf.ZipFile(data, 'r') as z2:
+                        process_zip(z2)
+
+        for dirpath, _, files in os.walk(path):
+            for file in files:
+                total += 1
+                file_path = os.path.join(dirpath, file)
+
+                if type_re.search(file):
+                    cats += 1
+                    print(f"Found {cats}/{total} .CAT* files to convert.", end='\r', flush=True)
+                elif zf.is_zipfile(file_path):
+                    with zf.ZipFile(file_path, 'r') as z:
+                        process_zip(z)
+
+        return cats
 
     def _dir_crawl(self, in_dir: str, out_dir: str) -> None:
         """Crawl through, process, and duplicate the directory.
@@ -220,7 +221,7 @@ class CATMiner:
                 dir_path = os.path.join(out_dir, file)
 
                 if not os.path.exists(dir_path):
-                    logger.info(f'Created path: {dir_path}.')
+                    logger.info(f'Created path {dir_path}.')
                     os.mkdir(dir_path)
 
                 self._dir_crawl(file_path, dir_path)
@@ -236,19 +237,29 @@ class CATMiner:
 
                         # create missing directories
                         if not os.path.exists(new_out_dir):
-                            logger.info(f'Created path: {new_out_dir}.')
+                            logger.info(f'Created path {new_out_dir}.')
                             os.mkdir(new_out_dir)
                         if not os.path.exists(tmp_path):
-                            logger.info(f'Created path: {tmp_path}.')
+                            logger.info(f'Created path {tmp_path}.')
                             os.makedirs(tmp_path, exist_ok=True)
 
                         # extract zip to temp location and continue
                         zfile.extractall(tmp_path)
                         self._dir_crawl(tmp_path, new_out_dir)
+                        logger.info(f'Removing {tmp_path}.')
                         shutil.rmtree(tmp_path)
 
-                # CATIA file found
+                # .CAT* file found
                 elif type_re.search(file_path):
+                    # non-readable or skipped .CAT* file
+                    print(type_re.findall(file_path)[0].lower())
+                    if type_re.findall(file_path)[0].lower() in self._skip_ext:
+                        logger.warning(f'Skipping "{file}" ({self._file_num}/{self._to_convert}). '
+                                       f'File extension in the skip list!')
+                        self._file_num += 1
+                        self._pbar.update(1)
+                        continue
+
                     # check if file has been previously processed
                     if not self._kwargs.get('force_export', False) and os.path.exists(out_dir):
                         extension_dict = {str(XML): '.xml', str(JSON): '.json'}
@@ -261,10 +272,6 @@ class CATMiner:
                             self._file_num += 1
                             self._pbar.update(1)
                             continue
-
-                    # non-CATIA .CAT* File
-                    if 'NCCode' in type_re.findall(file_path)[0]:
-                        continue
 
                     self._export_file(os.path.join(in_dir, file), out_dir)
 
@@ -292,7 +299,9 @@ class CATMiner:
             file_type = type_re.findall(cat_file)[0]
 
             # get the right CATIA object
-            if file_type == "Product":
+            if self._kwargs.get('active_doc', False):
+                browser = browser.ActiveDocument
+            elif file_type == "Product":
                 browser = browser.ActiveDocument.Product
             elif file_type == "Part":
                 browser = browser.ActiveDocument.Part
@@ -308,9 +317,8 @@ class CATMiner:
             self._cat_type(cat_file)
 
         # optimize
-        skip = ['Units', 'Parameters', 'GeometricElements']
         if not self._kwargs.get('no_skips', False):
-            [browser.skip(i) for i in skip]
+            [browser.skip(i) for i in self._kwargs.get('skip_list', [])]
         return browser
 
     def _export_file(self, in_dir: str, out_dir: str) -> None:
@@ -372,7 +380,7 @@ class CATMiner:
         # check total time
         total_time = time.perf_counter() - self._start_time
         self._pbar.close()
-        logger.info(f"Finished batch export in {total_time:.4f} seconds.\n")
+        logger.info(f"Finished batch export in {(total_time / 60):.2f} minutes.\n")
 
 
 if __name__ == "__main__":
