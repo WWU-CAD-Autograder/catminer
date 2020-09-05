@@ -45,6 +45,9 @@ def main():
                                      epilog='Use "catminer run -h" to get more help on the run command.')
     subparsers = parser.add_subparsers(help='sub-commands', dest='command')
 
+    # version check
+    parser.add_argument('-V', '--version', action='store_true', help='check which version of catminer is installed')
+
     # edit command
     subparsers.add_parser('edit', description='Modify the default settings using the following commands:',
                           help='edit catminer\'s settings file')
@@ -75,8 +78,13 @@ def main():
     d_args = vars(args)
 
     # bring up help if no command input
-    if sys.argv == ['catminer']:
+    if not sys.argv[1:]:
         parser.parse_args(args=['-h'])
+
+    # print version if requested
+    if args.version:
+        print('catminer version 1.3')
+        sys.exit(1)
 
     # read in config file
     ini_file = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'config', 'settings.ini')
