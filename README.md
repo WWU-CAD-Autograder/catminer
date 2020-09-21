@@ -33,14 +33,14 @@ catminer run -h
 ```
 which yields the following:
 ```
-usage: catminer run [-h] [-u USER_SETTINGS] [-i path] [-o path]
-                    [-t {xml,json}] [-f] [--no-skips] [--active-doc]
+usage: catminer run [-h] [-u int] [-i path] [-o path] [-t {xml,json}] [-f]
+                    [--no-skips] [--active-doc]
 
 Run catminer using these commands:
 
 optional arguments:
   -h, --help            show this help message and exit
-  -u USER_SETTINGS, --user-settings USER_SETTINGS
+  -u int, --user-settings int
                         run using user-defined settings from the settings.ini
                         file
   -i path, --in-dir path

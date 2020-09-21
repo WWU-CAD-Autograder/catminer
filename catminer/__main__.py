@@ -56,7 +56,7 @@ def main():
     run_parser = subparsers.add_parser('run', description='Run catminer using these commands:',
                                        help='run the batch export process')
 
-    run_parser.add_argument('-u', '--user-settings', nargs=1, type=int, default=0,
+    run_parser.add_argument('-u', '--user-settings', nargs=1, type=int, default=0, metavar='int',
                             help='run using user-defined settings from the settings.ini file')
     run_parser.add_argument('-i', '--in-dir', nargs=1, type=str, metavar='path', help='set the run directory')
     run_parser.add_argument('-o', '--out-dir', nargs=1, type=str, metavar='path', help='set the output directory')

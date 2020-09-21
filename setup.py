@@ -21,7 +21,7 @@ setuptools.setup(
     long_description=long_description,
     long_description_content_type="text/markdown",
     name="catminer",
-    version="1.4",
+    version="1.5",
     packages=['catminer'],
     package_data={'catminer': ['config/settings.ini']},
     python_requires='>=3.7',
