@@ -154,7 +154,7 @@ class CATMiner:
         os.makedirs(log_path, exist_ok=True)
 
         fh = logging.handlers.TimedRotatingFileHandler(
-            os.path.join(log_path, 'catminer.log'),
+            os.path.join(log_path, 'catminer-log'),
             when='midnight', interval=1
         )
         sh = TQDMStreamHandler(sys.stdout)
@@ -164,7 +164,7 @@ class CATMiner:
 
         formatter = logging.Formatter('%(asctime)s - %(levelname)s - %(message)s', datefmt='%Y-%m-%d %H:%M:%S')
         fh.setFormatter(formatter)
-        fh.suffix = '%m-%d-%Y'
+        fh.suffix = '-%Y-%m-%d.log'
         sh.setFormatter(formatter)
 
         logger.addHandler(fh)

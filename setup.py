@@ -6,7 +6,7 @@ with open("README.md", "r") as fh:
 setuptools.setup(
     author="Jack Wilson",
     classifiers=[
-        "Development Status :: 3 - Alpha",
+        "Development Status :: 5 - Production/Stable",
         "Environment :: Win32 (MS Windows)",
         "License :: OSI Approved :: MIT License",
         "Natural Language :: English",
@@ -21,7 +21,7 @@ setuptools.setup(
     long_description=long_description,
     long_description_content_type="text/markdown",
     name="catminer",
-    version="1.3",
+    version="1.4",
     packages=['catminer'],
     package_data={'catminer': ['config/settings.ini']},
     python_requires='>=3.7',
